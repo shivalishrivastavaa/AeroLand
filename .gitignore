@@ -1,0 +1,17 @@
+# ROS2 generated directories
+build/
+install/
+log/
+
+# Python generated files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Editor and operating-system files
+.vscode/
+.DS_Store
+
+# ROS bag recordings
+*.bag
+*.db3
