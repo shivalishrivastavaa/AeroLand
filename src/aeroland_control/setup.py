@@ -4,7 +4,7 @@ package_name = "aeroland_control"
 
 setup(
     name=package_name,
-    version="0.1.0",
+    version="0.2.0",
     packages=find_packages(exclude=["test"]),
     data_files=[
         (
@@ -28,6 +28,10 @@ setup(
             (
                 "offboard_controller = "
                 "aeroland_control.offboard_controller:main"
+            ),
+            (
+                "waypoint_mission = "
+                "aeroland_control.waypoint_mission:main"
             ),
         ],
     },
