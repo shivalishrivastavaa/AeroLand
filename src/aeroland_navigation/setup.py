@@ -24,8 +24,8 @@ setup(
     license="Apache-2.0",
     tests_require=["pytest"],
     entry_points={
-        "console_scripts": [
-            "turtle_patrol = aeroland_navigation.turtle_patrol:main",
-        ],
-    },
-)
+    "console_scripts": [
+        "turtle_patrol = aeroland_navigation.turtle_patrol:main",
+        "turtlebot_patrol = aeroland_navigation.turtlebot_patrol:main",
+    ],
+},)
