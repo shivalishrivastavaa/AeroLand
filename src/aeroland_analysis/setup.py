@@ -26,6 +26,7 @@ setup(
     entry_points={
         "console_scripts": [
             "mission_logger = aeroland_analysis.mission_logger:main",
+            "mission_report = aeroland_analysis.mission_report:main",
         ],
     },
 )
