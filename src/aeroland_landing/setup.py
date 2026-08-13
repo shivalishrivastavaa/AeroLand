@@ -26,6 +26,10 @@ setup(
                 'precision_landing = '
                 'aeroland_landing.precision_landing:main'
             ),
+            (
+                'inspection_landing = '
+                'aeroland_landing.inspection_landing:main'
+            ),
         ],
     },
 )
