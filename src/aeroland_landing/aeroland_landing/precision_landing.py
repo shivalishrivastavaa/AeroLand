@@ -18,7 +18,7 @@ from rclpy.qos import (
     QoSProfile,
     ReliabilityPolicy,
 )
-from std_msgs.msg import Bool, String
+from std_msgs.msg import Bool, Float32, String
 
 
 class PrecisionLanding(Node):
@@ -45,6 +45,7 @@ class PrecisionLanding(Node):
     LANDING_HANDOFF_MARGIN = 0.20
     DESCENT_TIMEOUT = 800
     RECOVERY_TIMEOUT = 300
+    UNCERTAINTY_TIMEOUT = 0.6
 
     def __init__(self):
         super().__init__("aeroland_precision_landing")
@@ -108,6 +109,18 @@ class PrecisionLanding(Node):
             self._marker_error_callback,
             10,
         )
+        self.create_subscription(
+            Bool,
+            "/aeroland/uncertainty/safe_to_descend",
+            self._uncertainty_safe_callback,
+            10,
+        )
+        self.create_subscription(
+            Float32,
+            "/aeroland/uncertainty/landing_confidence",
+            self._confidence_callback,
+            10,
+        )
 
         self.position = None
         self.status = None
@@ -115,6 +128,9 @@ class PrecisionLanding(Node):
         self.marker_error_x = 0.0
         self.marker_error_y = 0.0
         self.last_marker_time = None
+        self.uncertainty_safe = False
+        self.landing_confidence = 0.0
+        self.last_uncertainty_time = None
 
         self.home_x = 0.0
         self.home_y = 0.0
@@ -148,6 +164,13 @@ class PrecisionLanding(Node):
         self.marker_error_y = message.vector.y
         self.marker_detected = True
         self.last_marker_time = self.get_clock().now()
+
+    def _uncertainty_safe_callback(self, message):
+        self.uncertainty_safe = message.data
+        self.last_uncertainty_time = self.get_clock().now()
+
+    def _confidence_callback(self, message):
+        self.landing_confidence = message.data
 
     def _timestamp(self):
         return int(self.get_clock().now().nanoseconds / 1000)
@@ -187,6 +210,16 @@ class PrecisionLanding(Node):
             self.get_clock().now() - self.last_marker_time
         ).nanoseconds / 1e9
         return age <= self.MARKER_TIMEOUT
+
+    def _uncertainty_accepted(self):
+        if not self.uncertainty_safe:
+            return False
+        if self.last_uncertainty_time is None:
+            return False
+        age = (
+            self.get_clock().now() - self.last_uncertainty_time
+        ).nanoseconds / 1e9
+        return age <= self.UNCERTAINTY_TIMEOUT
 
     def _publish_offboard(self):
         message = OffboardControlMode()
@@ -397,10 +430,20 @@ class PrecisionLanding(Node):
         else:
             self.stable_ticks = 0
         if self.stable_ticks >= self.ALIGN_HOLD_TICKS:
+            if not self._uncertainty_accepted():
+                if self.state_ticks % 10 == 0:
+                    self.get_logger().info(
+                        "Marker centered; waiting for uncertainty "
+                        "acceptance "
+                        f"(confidence {self.landing_confidence:.2f})"
+                    )
+                return
             self.target_z = self.position.z
             self._enter(
                 "DESCEND",
-                f"Marker centered; descending (error {error:.3f})",
+                "Marker centered with acceptable uncertainty; "
+                f"descending (error {error:.3f}, confidence "
+                f"{self.landing_confidence:.2f})",
             )
 
     def _handle_descend(self):
@@ -429,6 +472,18 @@ class PrecisionLanding(Node):
                 "ALIGN",
                 f"Descent paused for realignment (error {error:.3f})",
             )
+            return
+        if not self._uncertainty_accepted():
+            self.target_z = self.position.z
+            self._publish_control()
+            if self.state_ticks % 10 == 0:
+                self.get_logger().info(
+                    "Descent held by uncertainty gate "
+                    f"(confidence {self.landing_confidence:.2f})"
+                )
+            self.state_ticks += 1
+            if self.state_ticks >= self.DESCENT_TIMEOUT:
+                self._start_recovery("uncertainty acceptance timeout")
             return
         self.target_z = min(
             self.target_z + self.DESCENT_STEP,

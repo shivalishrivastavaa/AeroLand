@@ -63,6 +63,12 @@ def generate_launch_description():
                 output="screen",
             ),
             Node(
+                package="aeroland_uncertainty",
+                executable="landing_confidence",
+                name="aeroland_landing_confidence",
+                output="screen",
+            ),
+            Node(
                 package="aeroland_landing",
                 executable="inspection_landing",
                 name="aeroland_inspection_landing",
