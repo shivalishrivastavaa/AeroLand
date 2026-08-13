@@ -18,7 +18,7 @@ from rclpy.qos import (
     QoSProfile,
     ReliabilityPolicy,
 )
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, String
 
 
 class PrecisionLanding(Node):
@@ -77,6 +77,13 @@ class PrecisionLanding(Node):
             "/fmu/in/vehicle_command",
             publisher_qos,
         )
+
+        self.state_publisher = self.create_publisher(
+            String,
+            "/aeroland/mission/state",
+            10,
+        )
+
         self.create_subscription(
             VehicleLocalPosition,
             "/fmu/out/vehicle_local_position_v1",
@@ -119,6 +126,7 @@ class PrecisionLanding(Node):
         self.state_ticks = 0
         self.prestream_ticks = 0
         self.stable_ticks = 0
+        self._publish_state()
         self.timer = self.create_timer(self.PERIOD, self._timer_callback)
 
         self.get_logger().info("AeroLand precision landing initialized")
@@ -143,6 +151,12 @@ class PrecisionLanding(Node):
 
     def _timestamp(self):
         return int(self.get_clock().now().nanoseconds / 1000)
+
+    def _publish_state(self):
+        """Publish the current mission state."""
+        message = String()
+        message.data = self.state
+        self.state_publisher.publish(message)
 
     def _telemetry_valid(self):
         return (
@@ -235,6 +249,7 @@ class PrecisionLanding(Node):
         self.state = state
         self.state_ticks = 0
         self.stable_ticks = 0
+        self._publish_state()
         self.get_logger().info(message)
 
     def _begin_landing(self, reason):
@@ -245,6 +260,7 @@ class PrecisionLanding(Node):
 
     def _complete(self):
         self.state = "COMPLETE"
+        self._publish_state()
         self.timer.cancel()
         self.get_logger().info("PX4 confirmed vehicle disarmed")
         self.get_logger().info("AeroLand precision landing complete")
