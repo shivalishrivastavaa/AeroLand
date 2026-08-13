@@ -15,7 +15,7 @@ from rclpy.qos import (
     QoSProfile,
     ReliabilityPolicy,
 )
-from std_msgs.msg import Bool, String
+from std_msgs.msg import Bool, Float32, String
 
 
 class MissionLogger(Node):
@@ -60,6 +60,11 @@ class MissionLogger(Node):
                 "marker_error_x",
                 "marker_error_y",
                 "marker_error_norm",
+                "landing_confidence",
+                "marker_sigma_x_m",
+                "marker_sigma_y_m",
+                "marker_sigma_radial_m",
+                "safe_to_descend",
             ]
         )
         self.log_file.flush()
@@ -69,6 +74,11 @@ class MissionLogger(Node):
         self.marker_detected = False
         self.marker_error_x = 0.0
         self.marker_error_y = 0.0
+        self.landing_confidence = 0.0
+        self.marker_sigma_x = 0.0
+        self.marker_sigma_y = 0.0
+        self.marker_sigma_radial = 0.0
+        self.safe_to_descend = False
         self.start_time = self.get_clock().now()
 
         px4_qos = QoSProfile(
@@ -101,6 +111,24 @@ class MissionLogger(Node):
             self._marker_error_callback,
             10,
         )
+        self.create_subscription(
+            Float32,
+            "/aeroland/uncertainty/landing_confidence",
+            self._confidence_callback,
+            10,
+        )
+        self.create_subscription(
+            Vector3Stamped,
+            "/aeroland/uncertainty/marker_sigma",
+            self._sigma_callback,
+            10,
+        )
+        self.create_subscription(
+            Bool,
+            "/aeroland/uncertainty/safe_to_descend",
+            self._safe_callback,
+            10,
+        )
         self.timer = self.create_timer(
             self.LOG_PERIOD_SECONDS,
             self._write_row,
@@ -122,6 +150,17 @@ class MissionLogger(Node):
     def _marker_error_callback(self, message):
         self.marker_error_x = message.vector.x
         self.marker_error_y = message.vector.y
+
+    def _confidence_callback(self, message):
+        self.landing_confidence = message.data
+
+    def _sigma_callback(self, message):
+        self.marker_sigma_x = message.vector.x
+        self.marker_sigma_y = message.vector.y
+        self.marker_sigma_radial = message.vector.z
+
+    def _safe_callback(self, message):
+        self.safe_to_descend = message.data
 
     def _elapsed_seconds(self):
         elapsed = self.get_clock().now() - self.start_time
@@ -167,6 +206,11 @@ class MissionLogger(Node):
                 error_x,
                 error_y,
                 error_norm,
+                self.landing_confidence,
+                self.marker_sigma_x,
+                self.marker_sigma_y,
+                self.marker_sigma_radial,
+                int(self.safe_to_descend),
             ]
         )
         self.log_file.flush()
