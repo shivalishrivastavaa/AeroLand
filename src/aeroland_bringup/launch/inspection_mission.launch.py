@@ -17,6 +17,7 @@ CAMERA_TOPIC = (
 def generate_launch_description():
     """Create the AeroLand integrated mission launch description."""
     camera_topic = LaunchConfiguration("camera_topic")
+    log_directory = LaunchConfiguration("log_directory")
     start_mission = LaunchConfiguration("start_mission")
 
     return LaunchDescription(
@@ -29,6 +30,11 @@ def generate_launch_description():
                 "camera_topic",
                 default_value=CAMERA_TOPIC,
                 description="Gazebo downward-camera image topic.",
+            ),
+            DeclareLaunchArgument(
+                "log_directory",
+                default_value="~/aeroland_ws/mission_logs",
+                description="Directory for AeroLand mission CSV files.",
             ),
             DeclareLaunchArgument(
                 "start_mission",
@@ -47,6 +53,13 @@ def generate_launch_description():
                 executable="aruco_detector",
                 name="aeroland_aruco_detector",
                 remappings=[(CAMERA_TOPIC, camera_topic)],
+                output="screen",
+            ),
+            Node(
+                package="aeroland_analysis",
+                executable="mission_logger",
+                name="aeroland_mission_logger",
+                parameters=[{"log_directory": log_directory}],
                 output="screen",
             ),
             Node(
