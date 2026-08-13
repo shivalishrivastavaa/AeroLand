@@ -42,6 +42,7 @@ class PrecisionLanding(Node):
     MAX_HOME_OFFSET = 2.0
     DESCENT_STEP = 0.025
     FINAL_LAND_Z = -1.00
+    LANDING_HANDOFF_MARGIN = 0.20
     DESCENT_TIMEOUT = 800
     RECOVERY_TIMEOUT = 300
 
@@ -389,9 +390,16 @@ class PrecisionLanding(Node):
     def _handle_descend(self):
         if not self._flight_safe():
             return
+
         if not self._marker_fresh():
-            self._start_recovery("marker lost during descent")
+            if self.position.z >= (
+                self.FINAL_LAND_Z - self.LANDING_HANDOFF_MARGIN
+            ):
+                self._begin_landing("marker lost near landing handoff")
+            else:
+                self._start_recovery("marker lost during descent")
             return
+
         if not self.marker_detected:
             self.target_z = self.position.z
             self._publish_control()
