@@ -8,8 +8,10 @@ import time
 
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 from aeroland_web.api_client import MissionAPIError, backend_health, run_remote_mission
+from aeroland_web.browser_twin import browser_twin_html
 from aeroland_web.charts import (
     altitude_chart,
     confidence_chart,
@@ -34,19 +36,19 @@ st.set_page_config(
 CSS = """
 <style>
 :root {
-  --al-bg: #000205;
-  --al-panel: #05090e;
-  --al-panel-2: #080f17;
-  --al-line: #292825;
-  --al-line-bright: #4a463e;
-  --al-text: #f3f0e8;
-  --al-muted: #9a968e;
-  --al-cyan: #f0b95a;
-  --al-blue: #f3f0e8;
-  --al-purple: #c8a7ff;
-  --al-amber: #f0b95a;
-  --al-green: #6fdc9b;
-  --al-red: #ff6078;
+  --al-bg: #020406;
+  --al-panel: #070b10;
+  --al-panel-2: #0b1118;
+  --al-line: #2c2e30;
+  --al-line-bright: #494a47;
+  --al-text: #f2f0ea;
+  --al-muted: #a8a8a3;
+  --al-cyan: #d6a34a;
+  --al-blue: #f2f0ea;
+  --al-purple: #b9a4d8;
+  --al-amber: #d6a34a;
+  --al-green: #67d391;
+  --al-red: #ff6b78;
 }
 
 html, body, [class*="css"] {
@@ -55,14 +57,14 @@ html, body, [class*="css"] {
 
 .stApp {
   color: var(--al-text);
-  background-color: #000205;
+  background-color: #020406;
   background-image:
     radial-gradient(circle, rgba(240, 250, 255, .48) 0 .65px, transparent .85px),
-    radial-gradient(circle, rgba(240, 185, 90, .34) 0 .55px, transparent .8px),
+    radial-gradient(circle, rgba(214, 163, 74, .30) 0 .55px, transparent .8px),
     radial-gradient(circle, rgba(168, 137, 255, .28) 0 .65px, transparent .9px),
     radial-gradient(ellipse at 78% -15%, rgba(36, 88, 128, .22), transparent 38%),
     radial-gradient(ellipse at 15% 105%, rgba(54, 31, 100, .14), transparent 38%),
-    linear-gradient(180deg, #02060a 0%, #000205 48%, #000 100%);
+    linear-gradient(180deg, #03070b 0%, #020406 48%, #000 100%);
   background-size: 83px 83px, 137px 137px, 211px 211px, auto, auto, auto;
   background-position: 7px 13px, 43px 71px, 111px 29px, center, center, center;
   background-attachment: fixed;
@@ -91,7 +93,7 @@ a[data-testid="stPageLink-NavLink"] {
 }
 [data-testid="stPageLink"] a:hover,
 a[data-testid="stPageLink-NavLink"]:hover {
-  border-color: var(--al-cyan); background: rgba(240,185,90,.08);
+  border-color: var(--al-cyan); background: rgba(214,163,74,.08);
 }
 
 .brand-lockup { padding: .15rem 0 1.35rem; }
@@ -99,7 +101,7 @@ a[data-testid="stPageLink-NavLink"]:hover {
   display: inline-grid; place-items: center; width: 34px; height: 34px;
   margin-right: 10px; border: 1px solid var(--al-cyan); color: var(--al-cyan);
   font: 700 18px/1 ui-monospace, monospace; transform: rotate(45deg);
-  box-shadow: 0 0 26px rgba(240,185,90,.16); vertical-align: middle;
+  box-shadow: 0 0 26px rgba(214,163,74,.14); vertical-align: middle;
 }
 .brand-mark > span { transform: rotate(-45deg); }
 .brand-name { display:inline-block; vertical-align:middle; font-size: 1.02rem; font-weight: 750; letter-spacing: .13em; }
@@ -126,16 +128,16 @@ label, [data-testid="stWidgetLabel"] p {
 [data-baseweb="select"] > div, [data-testid="stNumberInput"] input {
   background: #050b11 !important; border-color: var(--al-line) !important;
 }
-[data-testid="stSlider"] [role="slider"] { background: var(--al-cyan); border-color: #fff6e7; box-shadow:0 0 14px rgba(240,185,90,.22); }
+[data-testid="stSlider"] [role="slider"] { background: var(--al-cyan); border-color: #f2f0ea; box-shadow:0 0 14px rgba(214,163,74,.20); }
 
 .stButton > button, .stDownloadButton > button, .stLinkButton > a {
   min-height: 2.65rem; border-radius: 2px; border: 1px solid var(--al-cyan) !important;
-  background: rgba(240, 185, 90, .06) !important; color: #f7f2e8 !important;
+  background: rgba(214, 163, 74, .06) !important; color: #f2f0ea !important;
   font: 700 .68rem/1 ui-monospace, SFMono-Regular, Menlo, monospace !important;
   letter-spacing: .10em; text-transform: uppercase; transition: all .18s ease;
 }
 .stButton > button:hover, .stDownloadButton > button:hover, .stLinkButton > a:hover {
-  background: rgba(240,185,90,.14) !important; box-shadow: 0 0 26px rgba(240,185,90,.11);
+  background: rgba(214,163,74,.14) !important; box-shadow: 0 0 26px rgba(214,163,74,.11);
 }
 [data-testid="stSidebar"] .stButton > button { width:100%; background: var(--al-cyan) !important; color:#00060a !important; }
 [data-testid="stSidebar"] .stButton > button:disabled { background:#1a1917 !important; color:#77736b !important; border-color:#37342f !important; }
@@ -251,6 +253,7 @@ label, [data-testid="stWidgetLabel"] p {
 st.markdown(CSS, unsafe_allow_html=True)
 
 
+MISSION_API_CONFIGURED = bool(os.getenv("AEROLAND_SIM_API_URL", "").strip())
 MISSION_API_URL = os.getenv("AEROLAND_SIM_API_URL", "http://127.0.0.1:8000")
 GAZEBO_VIEW_URL = os.getenv(
     "AEROLAND_GAZEBO_VIEW_URL",
@@ -300,7 +303,7 @@ PRESET_DESCRIPTIONS = {
 }
 
 
-def _metric_card(label: str, value: str, footer: str, color: str = "#f0b95a") -> None:
+def _metric_card(label: str, value: str, footer: str, color: str = "#d6a34a") -> None:
     st.markdown(
         f"""
         <div class="metric-card" style="--metric-color:{color}">
@@ -428,14 +431,22 @@ with st.sidebar:
             **5. Scroll down** for charts, results, and downloads.
             """
         )
+    live_health = _backend_health(MISSION_API_URL) if MISSION_API_CONFIGURED else {}
+    live_available = (
+        live_health.get("status") == "ok"
+        and str(live_health.get("runner", "unknown")) == "gazebo"
+    )
+    runner_options = ["Browser digital twin"]
+    if live_available:
+        runner_options.append("Live Gazebo simulation")
+
     runner_mode = st.selectbox(
         "Simulation runner",
-        ["Browser digital twin", "Local mission backend"],
-        help="The local service runs an API test by default and real PX4/Gazebo after configuration.",
+        runner_options,
+        help="Browser mode is always available. Live Gazebo appears automatically when the simulator is online.",
     )
-    live_mode = runner_mode.startswith("Local")
-    live_health = _backend_health(MISSION_API_URL) if live_mode else {}
-    backend_ready = live_health.get("status") == "ok"
+    live_mode = runner_mode.startswith("Live")
+    backend_ready = live_available
     backend_runner = str(live_health.get("runner", "unknown"))
     st.selectbox(
         "Mission preset",
@@ -503,12 +514,7 @@ with st.sidebar:
         width="stretch",
     )
     if live_mode:
-        if not backend_ready:
-            st.error("Mission backend offline. Start the local API, then refresh this page.")
-        elif backend_runner == "demo":
-            st.info("Backend connected in API integration-test mode. Telemetry remains synthetic.")
-        else:
-            st.success("PX4/Gazebo backend ready. Wind and seed are configurable for every run.")
+        st.success("Live Gazebo simulation is ready. Wind and seed are configurable for every run.")
 
     st.markdown(
         f"""
@@ -563,7 +569,7 @@ if deploy:
             def update_backend_progress(value: float, state: str) -> None:
                 progress.progress(
                     max(0, min(int(value * 100), 99)),
-                    text=f"Backend: {state.replace('_', ' ').title()}…",
+                    text=f"Mission: {state.replace('_', ' ').title()}…",
                 )
 
             st.session_state.mission_result = run_remote_mission(
@@ -584,8 +590,11 @@ if deploy:
         st.session_state.run_number += 1
         progress.progress(100, text="Mission run complete")
         time.sleep(0.08)
-    except MissionAPIError as error:
-        st.error(f"Mission could not run: {error}")
+    except MissionAPIError:
+        st.error(
+            "The live mission could not finish. Please try again, or select "
+            "Browser digital twin to continue without the live simulator."
+        )
     finally:
         progress.empty()
 
@@ -597,7 +606,7 @@ status = metrics["mission_status"]
 status_class = "good" if status == "COMPLETE" else "bad"
 source_labels = {
     "browser_digital_twin": ("BROWSER DT", "Synthetic browser telemetry"),
-    "backend_demo": ("API TEST", "Synthetic telemetry returned through the mission API"),
+    "backend_demo": ("SERVICE DEMO", "Synthetic telemetry returned by the simulation service"),
     "gazebo_sitl": ("GAZEBO SITL", "Recorded PX4 SITL and Gazebo simulation telemetry"),
 }
 mode_status, model_disclosure = source_labels.get(
@@ -615,6 +624,13 @@ settings_pending = any(
         live_mode != (result.source in {"backend_demo", "gazebo_sitl"}),
     ]
 )
+stack_badges = (
+    '<span class="sys-item">ROS 2 <b>HUMBLE</b></span>'
+    '<span class="sys-item">PX4 <b>SITL</b></span>'
+    if result.source == "gazebo_sitl"
+    else '<span class="sys-item">ENGINE <b>BROWSER</b></span>'
+    '<span class="sys-item">MODE <b>INTERACTIVE</b></span>'
+)
 
 st.markdown(
     f"""
@@ -623,8 +639,7 @@ st.markdown(
       <div class="sys-array">
         <span class="sys-item"><i class="status-dot"></i>CONSOLE <b>ONLINE</b></span>
         <span class="sys-item"><i class="status-dot amber"></i>MODEL <b>{mode_status}</b></span>
-        <span class="sys-item">ROS 2 <b>HUMBLE</b></span>
-        <span class="sys-item">PX4 <b>SITL</b></span>
+        {stack_badges}
       </div>
     </div>
     <div class="hero-grid">
@@ -638,6 +653,23 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+if not show_live_gazebo:
+    st.markdown(
+        """
+        <div class="section-label">Animated mission view / browser twin</div>
+        <div class="panel-heading">
+          <span class="panel-title">Interactive X500-style mission playback</span>
+          <span class="panel-meta">BROWSER NATIVE / NO INSTALLATION</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.caption(
+        "The vehicle moves through the generated mission automatically. "
+        "Pause, replay, scrub the timeline, drag to orbit, or scroll to zoom."
+    )
+    components.html(browser_twin_html(frame), height=650, scrolling=False)
 
 if settings_pending:
     st.warning("Runner or settings changed. Press **Run mission** in the left panel to update the telemetry and results.")
@@ -710,7 +742,7 @@ metric_columns = st.columns(5, gap="small")
 with metric_columns[0]:
     _metric_card("Mission duration", f"{metrics['mission_duration_s']:.1f} s", "<strong>10 Hz</strong> telemetry record")
 with metric_columns[1]:
-    error_color = "#6fdc9b" if metrics["final_horizontal_error_m"] <= 0.05 else "#f0b95a"
+    error_color = "#67d391" if metrics["final_horizontal_error_m"] <= 0.05 else "#d6a34a"
     _metric_card(
         "Landing error",
         f"{100 * metrics['final_horizontal_error_m']:.1f} cm",
@@ -722,7 +754,7 @@ with metric_columns[2]:
         "Mean confidence",
         f"{metrics['mean_landing_confidence']:.3f}",
         f"Limit <strong>≥ {result.configuration.confidence_threshold:.2f}</strong>",
-        "#f3f0e8",
+        "#f2f0ea",
     )
 with metric_columns[3]:
     _metric_card(
@@ -736,7 +768,7 @@ with metric_columns[4]:
         "Descent approval",
         f"{metrics['descent_approval_pct']:.1f}%",
         f"<strong>{metrics['uncertainty_pause_events']}</strong> safety pauses",
-        "#f0b95a",
+        "#d6a34a",
     )
 
 telemetry_tab, analysis_tab, system_tab = st.tabs(["FLIGHT DATA", "RESULTS", "SYSTEM"])
@@ -868,19 +900,19 @@ with system_tab:
         with benchmark_metrics[0]:
             _metric_card("Landing error", "3.6 cm", "Recorded PX4 SITL mission", "#6fdc9b")
         with benchmark_metrics[1]:
-            _metric_card("Mean confidence", "0.818", "Recorded descent guidance", "#f3f0e8")
+            _metric_card("Mean confidence", "0.818", "Recorded descent guidance", "#f2f0ea")
         st.markdown("<br>", unsafe_allow_html=True)
         benchmark_metrics_2 = st.columns(2)
         with benchmark_metrics_2[0]:
             _metric_card("Mean radial sigma", "0.033 m", "Recorded ground plane", "#c8a7ff")
         with benchmark_metrics_2[1]:
-            _metric_card("Safety pauses", "3", "Closed-loop descent holds", "#f0b95a")
+            _metric_card("Safety pauses", "3", "Closed-loop descent holds", "#d6a34a")
     with verified_columns[1]:
         st.markdown('<div class="section-label">Runtime separation</div>', unsafe_allow_html=True)
         st.markdown(
             """
             <div class="disclosure"><strong>BROWSER DIGITAL TWIN</strong><br>Runs immediately inside Streamlit. It is deterministic, parameterized, and useful for interface testing and safety-envelope exploration. Its results are synthetic.</div><br>
-            <div class="disclosure"><strong>LOCAL MISSION BACKEND</strong><br>The included mission API can run in a synthetic integration-test mode or launch the local ROS 2, PX4 SITL, and headless Gazebo stack. Every result is labeled with its actual telemetry source.</div>
+            <div class="disclosure"><strong>LIVE SIMULATION</strong><br>When enabled by the site operator, AeroLand runs the ROS 2 mission with PX4 SITL and Gazebo. Visitors do not need to configure these services. Every result is labeled with its actual telemetry source.</div>
             """,
             unsafe_allow_html=True,
         )
