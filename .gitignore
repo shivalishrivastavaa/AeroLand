@@ -16,3 +16,29 @@ __pycache__/
 *.bag
 *.db3
 mission_logs/
+
+# Local environments and private configuration
+.venv/
+web/.venv/
+.env
+.env.*
+!.env.example
+
+# Local backups
+backups/
+web_before_*/
+
+# Frontend dependencies and test output
+node_modules/
+.coverage
+htmlcov/
+
+# Local runtime files
+*.log
+.aeroland/
+
+# Obsolete generated Gazebo viewer bundles
+web/gazebo_view/assets/index-*.js
+web/gazebo_view/assets/index-*.css
+!web/gazebo_view/assets/index-Xj4KseQy.js
+!web/gazebo_view/assets/index-Cjw3gzD8.css

@@ -17,7 +17,10 @@ CAMERA_TOPIC = (
 def generate_launch_description():
     """Create the AeroLand integrated mission launch description."""
     camera_topic = LaunchConfiguration("camera_topic")
+    confidence_threshold = LaunchConfiguration("confidence_threshold")
+    cruise_altitude_m = LaunchConfiguration("cruise_altitude_m")
     log_directory = LaunchConfiguration("log_directory")
+    sigma_threshold_m = LaunchConfiguration("sigma_threshold_m")
     start_mission = LaunchConfiguration("start_mission")
 
     return LaunchDescription(
@@ -25,6 +28,21 @@ def generate_launch_description():
             SetEnvironmentVariable(
                 name="PYTHONNOUSERSITE",
                 value="1",
+            ),
+            DeclareLaunchArgument(
+                "confidence_threshold",
+                default_value="0.60",
+                description="Minimum confidence required for descent.",
+            ),
+            DeclareLaunchArgument(
+                "sigma_threshold_m",
+                default_value="0.12",
+                description="Maximum radial ground-plane sigma for descent.",
+            ),
+            DeclareLaunchArgument(
+                "cruise_altitude_m",
+                default_value="2.50",
+                description="Inspection and recovery altitude in meters.",
             ),
             DeclareLaunchArgument(
                 "camera_topic",
@@ -66,6 +84,12 @@ def generate_launch_description():
                 package="aeroland_uncertainty",
                 executable="landing_confidence",
                 name="aeroland_landing_confidence",
+                parameters=[
+                    {
+                        "confidence_limit": confidence_threshold,
+                        "sigma_limit_m": sigma_threshold_m,
+                    }
+                ],
                 output="screen",
             ),
             Node(
@@ -73,6 +97,7 @@ def generate_launch_description():
                 executable="inspection_landing",
                 name="aeroland_inspection_landing",
                 condition=IfCondition(start_mission),
+                parameters=[{"cruise_altitude_m": cruise_altitude_m}],
                 output="screen",
             ),
         ]

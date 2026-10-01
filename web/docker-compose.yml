@@ -1,0 +1,22 @@
+services:
+  mission-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      AEROLAND_RUNNER_MODE: demo
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  console:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      AEROLAND_SIM_API_URL: http://mission-api:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      - mission-api
+    restart: unless-stopped

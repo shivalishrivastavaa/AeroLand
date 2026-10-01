@@ -42,6 +42,15 @@ class LandingConfidenceEstimator(Node):
     def __init__(self):
         super().__init__("aeroland_landing_confidence")
 
+        self.declare_parameter("confidence_limit", self.CONFIDENCE_LIMIT)
+        self.declare_parameter("sigma_limit_m", self.SIGMA_LIMIT_METERS)
+        self.CONFIDENCE_LIMIT = float(
+            self.get_parameter("confidence_limit").value
+        )
+        self.SIGMA_LIMIT_METERS = float(
+            self.get_parameter("sigma_limit_m").value
+        )
+
         px4_qos = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
             durability=DurabilityPolicy.VOLATILE,
@@ -101,7 +110,9 @@ class LandingConfidenceEstimator(Node):
 
         self.timer = self.create_timer(self.PERIOD, self._timer_callback)
         self.get_logger().info(
-            "AeroLand landing-confidence estimator initialized"
+            "AeroLand landing-confidence estimator initialized "
+            f"(confidence >= {self.CONFIDENCE_LIMIT:.2f}, "
+            f"sigma <= {self.SIGMA_LIMIT_METERS:.3f} m)"
         )
 
     def _position_callback(self, message):

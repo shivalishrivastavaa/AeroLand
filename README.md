@@ -228,6 +228,16 @@ aeroland_bringup inspection_mission.launch.py \
 start_mission:=false
 ```
 
+## Run from the Mission Console
+
+The `web` directory includes a local mission API that can launch the same
+headless PX4/Gazebo mission from the website. It validates all public inputs,
+allows only one real simulation at a time, enforces a timeout, records separate
+process logs, and labels synthetic and Gazebo telemetry distinctly.
+
+Follow [`web/LIVE_BACKEND.md`](web/LIVE_BACKEND.md) to test the API connection
+and then enable the real runner on Ubuntu/WSL.
+
 ## Mission Logs and Reports
 
 CSV logs are written to:
@@ -320,7 +330,8 @@ aeroland_ws/
 - Confidence calibration and success-probability curves
 - Comparison against landing without uncertainty gating
 - Automated regression tests for mission-state transitions
-- Parameterized launch files and controller thresholds
+- Validated Gazebo wind-disturbance and seed control
+- Live downward-camera streaming in the mission console
 - Hardware-in-the-loop and physical-flight validation
 
 ## Author

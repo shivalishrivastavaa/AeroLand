@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f7f8fa" />
+    <title>AeroLand Live X500 Twin</title>
+    <script type="module" crossorigin src="./assets/index-Xj4KseQy.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-Cjw3gzD8.css">
+  </head>
+  <body>
+    <main class="viewport-shell">
+      <div id="gz-scene" aria-label="Live Gazebo simulation viewport"></div>
+
+      <header class="hud hud-top">
+        <div class="identity">
+          <span class="mark">✦</span>
+          <div>
+            <strong>LIVE X500 TWIN</strong>
+            <span>PX4 MODEL / GAZEBO POSE</span>
+          </div>
+        </div>
+        <div class="connection">
+          <i id="status-dot"></i>
+          <span id="connection-status">WAITING FOR SIMULATION</span>
+        </div>
+      </header>
+
+      <section id="waiting-card" class="waiting-card">
+        <span class="waiting-orbit" aria-hidden="true"></span>
+        <p class="eyebrow">MISSION VISUALIZATION</p>
+        <h1 id="waiting-title">Waiting for Gazebo</h1>
+        <p id="waiting-copy">
+          Start a local mission from the AeroLand controls. This panel will
+          connect automatically when the simulator is ready.
+        </p>
+      </section>
+
+      <footer class="hud hud-bottom">
+        <div class="telemetry-tags">
+          <span>MODEL <b id="model-label">LOADING PX4 ASSETS</b></span>
+          <span>POSE <b id="pose-label">WAITING</b></span>
+          <span>VIEW <b id="view-label">FREE CAMERA</b></span>
+          <span>LINK <b>GAZEBO LIVE</b></span>
+        </div>
+        <div class="view-actions">
+          <button id="reset-view" type="button" disabled>RESET VIEW</button>
+          <button id="follow-drone" type="button" disabled>FOLLOW DRONE</button>
+          <button id="free-camera" type="button" disabled>FREE CAMERA</button>
+          <button id="fullscreen" type="button">FULLSCREEN</button>
+        </div>
+      </footer>
+    </main>
+  </body>
+</html>

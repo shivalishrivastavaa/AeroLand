@@ -50,6 +50,10 @@ class PrecisionLanding(Node):
     def __init__(self):
         super().__init__("aeroland_precision_landing")
 
+        self.declare_parameter("cruise_altitude_m", abs(self.TAKEOFF_Z))
+        cruise_altitude = float(self.get_parameter("cruise_altitude_m").value)
+        self.TAKEOFF_Z = -abs(cruise_altitude)
+
         publisher_qos = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
             durability=DurabilityPolicy.TRANSIENT_LOCAL,
@@ -145,7 +149,10 @@ class PrecisionLanding(Node):
         self._publish_state()
         self.timer = self.create_timer(self.PERIOD, self._timer_callback)
 
-        self.get_logger().info("AeroLand precision landing initialized")
+        self.get_logger().info(
+            "AeroLand precision landing initialized at "
+            f"{cruise_altitude:.2f} m"
+        )
         self.get_logger().info("Waiting for PX4 telemetry and perception...")
 
     def _position_callback(self, message):
@@ -362,7 +369,10 @@ class PrecisionLanding(Node):
     def _handle_activate(self):
         self._publish_control()
         if self._armed() and self._offboard():
-            self._enter("TAKEOFF", "Taking off to 2.5 meters")
+            self._enter(
+                "TAKEOFF",
+                f"Taking off to {-self.TAKEOFF_Z:.2f} meters",
+            )
             return
         self.state_ticks += 1
         if self.state_ticks % 10 == 0:

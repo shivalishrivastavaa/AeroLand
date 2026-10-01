@@ -1,0 +1,13 @@
+streamlit>=1.55,<2
+fastapi>=0.115,<1
+uvicorn[standard]>=0.34,<1
+requests>=2.32,<3
+numpy>=1.26,<3
+pandas>=2.2,<3
+plotly>=5.24,<7
+matplotlib>=3.8,<4
+pytest>=8.3,<9
+kconfiglib==14.1.0
+empy==3.3.4
+pyros-genmsg==0.5.8
+pymavlink>=2.4.49,<3
